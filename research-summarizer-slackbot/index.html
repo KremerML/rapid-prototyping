@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ResearchPulse — Your Daily Intel</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #21263a;
+    --border: #2a2f45;
+    --text: #e8eaf0;
+    --muted: #7880a0;
+    --accent-must: #f04438;
+    --accent-skim: #f79009;
+    --accent-low: #475467;
+    --accent-blue: #4e7cf6;
+    --accent-green: #17b26a;
+    --tag-bg: #1e2233;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ─────────────────────────────────────── */
+  .sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 20px 0;
+  }
+
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #4e7cf6, #8b5cf6);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .logo-text {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  .logo-sub {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* user profile card */
+  .user-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    margin: 16px 12px 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4e7cf6 0%, #8b5cf6 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .user-info-name {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .user-info-role {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .online-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-green);
+    border-radius: 50%;
+    margin-left: auto;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px var(--accent-green);
+  }
+
+  /* sidebar sections */
+  .sidebar-section {
+    padding: 20px 20px 0;
+  }
+
+  .sidebar-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .channel-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .channel-item:hover { background: var(--surface2); }
+  .channel-item.active { background: rgba(78,124,246,0.12); }
+
+  .channel-hash {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .channel-name {
+    font-size: 13px;
+    flex: 1;
+  }
+
+  .channel-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 20px;
+  }
+
+  .badge-hot { background: rgba(240,68,56,0.18); color: var(--accent-must); }
+  .badge-active { background: rgba(247,144,9,0.18); color: var(--accent-skim); }
+  .badge-quiet { background: rgba(71,84,103,0.3); color: var(--muted); }
+
+  .priority-star {
+    font-size: 10px;
+    color: var(--accent-blue);
+  }
+
+  /* interest tags */
+  .interest-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 20px;
+    margin-top: 8px;
+  }
+
+  .interest-tag {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: rgba(78,124,246,0.1);
+    border: 1px solid rgba(78,124,246,0.25);
+    color: #a5b8f8;
+  }
+
+  .sidebar-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 20px;
+  }
+
+  .colleagues-section {
+    padding: 0 20px;
+  }
+
+  .colleague-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+  }
+
+  .colleague-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .colleague-name {
+    font-size: 12px;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .colleague-activity {
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px 20px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .last-updated {
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* ── MAIN CONTENT ────────────────────────────────── */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topbar {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .topbar-left h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+  }
+
+  .topbar-date {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .topbar-stats {
+    display: flex;
+    gap: 20px;
+  }
+
+  .stat-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .stat-chip strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .stat-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  /* tier headers */
+  .tier-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 24px 32px 12px;
+  }
+
+  .tier-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+
+  .tier-must { background: rgba(240,68,56,0.15); color: var(--accent-must); border: 1px solid rgba(240,68,56,0.3); }
+  .tier-skim { background: rgba(247,144,9,0.12); color: var(--accent-skim); border: 1px solid rgba(247,144,9,0.25); }
+  .tier-low  { background: rgba(71,84,103,0.2);  color: var(--muted);       border: 1px solid var(--border); }
+
+  .tier-desc {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* ── PAPER CARD ──────────────────────────────────── */
+  .cards-list {
+    padding: 0 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .paper-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .paper-card:hover {
+    border-color: rgba(78,124,246,0.4);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+  }
+
+  .card-rank-stripe {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    border-radius: 12px 0 0 12px;
+  }
+
+  .stripe-must { background: var(--accent-must); }
+  .stripe-skim { background: var(--accent-skim); }
+  .stripe-low  { background: var(--accent-low); }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .card-rank-num {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+    min-width: 28px;
+    text-align: center;
+    margin-top: 2px;
+  }
+
+  .rank-must { color: rgba(240,68,56,0.5); }
+  .rank-skim { color: rgba(247,144,9,0.5); }
+  .rank-low  { color: rgba(71,84,103,0.5); }
+
+  .card-title-block {
+    flex: 1;
+  }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+    line-height: 1.4;
+    margin-bottom: 4px;
+  }
+
+  .card-title a {
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .card-title a:hover { color: var(--accent-blue); }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .meta-channel {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 5px;
+    background: rgba(78,124,246,0.1);
+    color: #7ea8f8;
+    border: 1px solid rgba(78,124,246,0.2);
+  }
+
+  .meta-shared {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .meta-dot { color: var(--border); }
+
+  .card-summary {
+    font-size: 13px;
+    color: #a0a8c0;
+    line-height: 1.65;
+    margin: 10px 0 14px 40px;
+  }
+
+  /* personalization signals */
+  .signals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: 40px;
+  }
+
+  .signal {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    padding: 4px 9px;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+
+  .signal-colleagues {
+    background: rgba(23,178,106,0.1);
+    color: #6ee7b7;
+    border: 1px solid rgba(23,178,106,0.2);
+  }
+
+  .signal-channel {
+    background: rgba(78,124,246,0.1);
+    color: #a5b8f8;
+    border: 1px solid rgba(78,124,246,0.2);
+  }
+
+  .signal-relevance {
+    background: rgba(139,92,246,0.1);
+    color: #c4b5fd;
+    border: 1px solid rgba(139,92,246,0.2);
+  }
+
+  .signal-discussion {
+    background: rgba(247,144,9,0.1);
+    color: #fcd34d;
+    border: 1px solid rgba(247,144,9,0.2);
+  }
+
+  .signal-novelty {
+    background: rgba(6,182,212,0.1);
+    color: #67e8f9;
+    border: 1px solid rgba(6,182,212,0.2);
+  }
+
+  /* skeleton loader */
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 6px;
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .skeleton-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .skel-title { height: 18px; width: 70%; }
+  .skel-meta  { height: 12px; width: 40%; }
+  .skel-body  { height: 13px; width: 90%; }
+  .skel-body2 { height: 13px; width: 75%; }
+  .skel-sig   { height: 24px; width: 55%; }
+
+  .tier-section { margin-bottom: 8px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 32px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* for you banner */
+  .foryou-banner {
+    margin: 16px 32px 0;
+    padding: 10px 16px;
+    background: rgba(78,124,246,0.07);
+    border: 1px solid rgba(78,124,246,0.18);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: #a5b8f8;
+  }
+
+  .foryou-icon { font-size: 14px; }
+
+  .scroll-spacer { height: 40px; }
+</style>
+</head>
+<body>
+
+<!-- ──────────── SIDEBAR ──────────── -->
+<aside class="sidebar">
+
+  <div class="sidebar-logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-text">ResearchPulse</div>
+      <div class="logo-sub">Daily Intel</div>
+    </div>
+  </div>
+
+  <!-- User card -->
+  <div class="sidebar-section" style="margin-top:0; padding-top:16px;">
+    <div class="user-card">
+      <div class="avatar">RK</div>
+      <div>
+        <div class="user-info-name">Ron K.</div>
+        <div class="user-info-role">AI Systems · Research</div>
+      </div>
+      <div class="online-dot"></div>
+    </div>
+  </div>
+
+  <!-- Your interests -->
+  <div class="sidebar-section" style="margin-top:16px;">
+    <div class="sidebar-section-label">Your Interests</div>
+  </div>
+  <div class="interest-tags">
+    <span class="interest-tag">Agent systems</span>
+    <span class="interest-tag">LLM efficiency</span>
+    <span class="interest-tag">RLHF</span>
+    <span class="interest-tag">Multimodal</span>
+    <span class="interest-tag">Context scaling</span>
+  </div>
+
+  <div class="sidebar-divider"></div>
+
+  <!-- Your channels -->
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Your Channels</div>
+
+    <div class="channel-item active">
+      <span class="channel-hash">#</span>
+      <span class="channel-name">ai-agents</span>
+      <span class="priority-star">★</span>
+      <span class="channel-badge badge-hot">9 new</span>
+    </div>
+
+    <div class="channel-item">
+      <span class="channel-hash">#</span>
+      <span class="channel-name">ml-research</span>
+      <span class="priority-star">★</span>
+      <span class="channel-badge badge-active">4 new</span>
+    </div>
+
+    <div class="channel-item">
+      <span class="channel-hash">#</span>
+      <span class="channel-name">systems</span>
+      <span class="channel-badge badge-active">2 new</span>
+    </div>
+
+    <div class="channel-item">
+      <span class="channel-hash">#</span>
+      <span class="channel-name">product-eng</span>
+      <span class="channel-badge badge-quiet">quiet</span>
+    </div>
+
+    <div class="channel-item">
+      <span class="channel-hash">#</span>
+      <span class="channel-name">papers-general</span>
+      <span class="channel-badge badge-quiet">quiet</span>
+    </div>
+  </div>
+
+  <div class="sidebar-divider"></div>
+
+  <!-- Colleagues -->
+  <div class="colleagues-section">
+    <div class="sidebar-section-label" style="margin-bottom:10px;">Active Colleagues</div>
+
+    <div class="colleague-row">
+      <div class="colleague-avatar" style="background: linear-gradient(135deg,#4e7cf6,#8b5cf6)">A</div>
+      <span class="colleague-name">@alice</span>
+      <span class="colleague-activity">2 shares today</span>
+    </div>
+    <div class="colleague-row">
+      <div class="colleague-avatar" style="background: linear-gradient(135deg,#17b26a,#0891b2)">B</div>
+      <span class="colleague-name">@bob</span>
+      <span class="colleague-activity">1 share today</span>
+    </div>
+    <div class="colleague-row">
+      <div class="colleague-avatar" style="background: linear-gradient(135deg,#f79009,#ef4444)">C</div>
+      <span class="colleague-name">@carol</span>
+      <span class="colleague-activity">active now</span>
+    </div>
+    <div class="colleague-row">
+      <div class="colleague-avatar" style="background: linear-gradient(135deg,#8b5cf6,#ec4899)">D</div>
+      <span class="colleague-name">@dave</span>
+      <span class="colleague-activity">1 share today</span>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="last-updated">Last synced: just now · Next sync in 28 min</div>
+  </div>
+
+</aside>
+
+<!-- ──────────── MAIN ──────────── -->
+<main class="main">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>Your Research Intel</h1>
+      <div class="topbar-date" id="dateDisplay"></div>
+    </div>
+    <div class="topbar-stats">
+      <div class="stat-chip">
+        <div class="stat-dot" style="background:var(--accent-must)"></div>
+        <span><strong id="mustCount">—</strong> must-reads</span>
+      </div>
+      <div class="stat-chip">
+        <div class="stat-dot" style="background:var(--accent-skim)"></div>
+        <span><strong id="skimCount">—</strong> to skim</span>
+      </div>
+      <div class="stat-chip">
+        <div class="stat-dot" style="background:var(--accent-low)"></div>
+        <span><strong id="lowCount">—</strong> low priority</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foryou-banner">
+    <span class="foryou-icon">🎯</span>
+    <span>Ranked for <strong>Ron K.</strong> based on your channels, interests, and colleague signals — not global popularity.</span>
+  </div>
+
+  <div id="feed">
+    <!-- Skeleton loading state -->
+    <div class="tier-section" id="skeletonState">
+      <div class="tier-header">
+        <div class="skeleton" style="height:24px;width:100px;border-radius:6px;"></div>
+        <div class="skeleton" style="height:14px;width:200px;border-radius:4px;"></div>
+      </div>
+      <div class="cards-list">
+        <div class="skeleton-card">
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-meta"></div>
+          <div class="skeleton skel-body"></div>
+          <div class="skeleton skel-body2"></div>
+          <div class="skeleton skel-sig"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton skel-title"></div>
+          <div class="skeleton skel-meta"></div>
+          <div class="skeleton skel-body"></div>
+          <div class="skeleton skel-body2"></div>
+          <div class="skeleton skel-sig"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ── Personalization config (the "user model") ──────────────────────────
+const USER = {
+  name: 'Ron K.',
+  initials: 'RK',
+  priorityChannels: ['#ai-agents', '#ml-research'],
+  interests: ['agent systems', 'LLM efficiency', 'context scaling', 'multimodal'],
+  colleagues: ['@alice', '@carol', '@bob', '@dave'],
+};
+
+// Per-paper enrichment: signals that explain the ranking.
+// In a real system these come from the backend. Here we hardcode them
+// to match the mock data from mock_data.py.
+const ENRICHMENT = {
+  'GPT-4 Technical Report': {
+    tier: 'must',
+    signals: [
+      { type: 'colleagues', label: '3 people you work with discussed this' },
+      { type: 'channel',    label: 'From #ml-research (★ priority channel)' },
+      { type: 'relevance',  label: 'Relevant to your multimodal interest' },
+      { type: 'discussion', label: '14 replies · high discussion intensity' },
+    ],
+  },
+  'Voyager: An Open-Ended Embodied Agent with Large Language Models': {
+    tier: 'must',
+    signals: [
+      { type: 'channel',    label: 'From #ai-agents (★ top priority channel)' },
+      { type: 'relevance',  label: 'Directly relevant to your agent systems work' },
+      { type: 'novelty',    label: 'Novel approach — first LLM lifelong learning agent' },
+      { type: 'colleagues', label: '@carol shared this (frequent collaborator)' },
+    ],
+  },
+  'Ring Attention with Blockwise Transformers for Near-Infinite Context': {
+    tier: 'must',
+    signals: [
+      { type: 'relevance',  label: 'Matches your context scaling interest' },
+      { type: 'novelty',    label: 'New technique — addresses a key LLM limitation' },
+      { type: 'channel',    label: 'From #systems · @dave (colleague) shared' },
+    ],
+  },
+  'LLaMA: Open and Efficient Foundation Language Models': {
+    tier: 'skim',
+    signals: [
+      { type: 'relevance',  label: 'Relevant to LLM efficiency interest' },
+      { type: 'channel',    label: 'From #ml-research (★ priority channel)' },
+      { type: 'discussion', label: '7 replies · moderate discussion' },
+    ],
+  },
+  'Llama 2: Open Foundation and Fine-Tuned Chat Models': {
+    tier: 'skim',
+    signals: [
+      { type: 'colleagues', label: '@alice shared this (frequent collaborator)' },
+      { type: 'channel',    label: 'From #ml-research (★ priority channel)' },
+    ],
+  },
+  'Gemini: A Family of Highly Capable Multimodal Models': {
+    tier: 'low',
+    signals: [
+      { type: 'relevance',  label: 'Tangentially related to multimodal' },
+      { type: 'channel',    label: 'From #ml-research' },
+    ],
+  },
+};
+
+const SIGNAL_ICON = {
+  colleagues: '👥',
+  channel:    '#',
+  relevance:  '✦',
+  discussion: '💬',
+  novelty:    '✨',
+};
+
+const TIER_ORDER = ['must', 'skim', 'low'];
+const TIER_META = {
+  must: { label: '🔴 Must Read', desc: 'High relevance to your work · strong colleague signals', cls: 'tier-must', stripe: 'stripe-must', rank: 'rank-must' },
+  skim: { label: '🟡 Skim',      desc: 'Useful context · moderate signals',                       cls: 'tier-skim', stripe: 'stripe-skim', rank: 'rank-skim' },
+  low:  { label: '⚫ Low Priority', desc: 'Weak match to your interests',                         cls: 'tier-low',  stripe: 'stripe-low',  rank: 'rank-low'  },
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────
+function tierOf(paper) {
+  return ENRICHMENT[paper.title]?.tier ?? 'low';
+}
+
+function enrichOf(paper) {
+  return ENRICHMENT[paper.title] ?? { tier: 'low', signals: [] };
+}
+
+function buildSignalHtml(signal) {
+  const icon = SIGNAL_ICON[signal.type] ?? '·';
+  return `<span class="signal signal-${signal.type}">${icon} ${signal.label}</span>`;
+}
+
+function buildCard(paper, rankNum) {
+  const enrich = enrichOf(paper);
+  const tier = enrich.tier;
+  const meta = TIER_META[tier];
+  const signalsHtml = enrich.signals.map(buildSignalHtml).join('');
+
+  return `
+    <div class="paper-card">
+      <div class="card-rank-stripe ${meta.stripe}"></div>
+      <div class="card-top">
+        <div class="card-rank-num ${meta.rank}">${rankNum}</div>
+        <div class="card-title-block">
+          <div class="card-title"><a href="${paper.link}" target="_blank" rel="noopener">${paper.title}</a></div>
+          <div class="card-meta">
+            <span class="meta-channel">${paper.channel}</span>
+            <span class="meta-dot">·</span>
+            <span class="meta-shared">shared by ${paper.shared_by}</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-summary">${paper.summary}</div>
+      <div class="signals">${signalsHtml}</div>
+    </div>
+  `;
+}
+
+function buildFeed(papers) {
+  const grouped = { must: [], skim: [], low: [] };
+  papers.forEach(p => grouped[tierOf(p)].push(p));
+
+  document.getElementById('mustCount').textContent = grouped.must.length;
+  document.getElementById('skimCount').textContent = grouped.skim.length;
+  document.getElementById('lowCount').textContent  = grouped.low.length;
+
+  let globalRank = 1;
+  let html = '';
+
+  TIER_ORDER.forEach(tier => {
+    const items = grouped[tier];
+    if (!items.length) return;
+    const meta = TIER_META[tier];
+    const cardsHtml = items.map(p => buildCard(p, globalRank++)).join('');
+    html += `
+      <div class="tier-section">
+        <div class="tier-header">
+          <span class="tier-badge ${meta.cls}">${meta.label}</span>
+          <span class="tier-desc">${meta.desc}</span>
+        </div>
+        <div class="cards-list">${cardsHtml}</div>
+      </div>
+    `;
+  });
+
+  html += '<div class="scroll-spacer"></div>';
+  return html;
+}
+
+// ── Date display ──────────────────────────────────────────────────────
+const now = new Date();
+document.getElementById('dateDisplay').textContent =
+  now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+// ── Fetch from backend ────────────────────────────────────────────────
+async function loadPapers() {
+  try {
+    const res = await fetch('http://localhost:8000/papers');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const papers = await res.json();
+    document.getElementById('feed').innerHTML = buildFeed(papers);
+  } catch (err) {
+    // Graceful fallback: render from embedded mock data so the UI works
+    // even when the backend is not running.
+    console.warn('Backend unreachable, using embedded mock data:', err.message);
+    const fallback = [
+      { link: 'https://arxiv.org/abs/2303.08774', title: 'GPT-4 Technical Report', summary: 'OpenAI introduces GPT-4, a large multimodal model that accepts image and text inputs and produces text outputs. GPT-4 exhibits human-level performance on various professional and academic benchmarks, including passing a simulated bar exam in the top 10% of test takers.', channel: '#ml-research', shared_by: '@alice' },
+      { link: 'https://arxiv.org/abs/2302.13971', title: 'LLaMA: Open and Efficient Foundation Language Models', summary: 'Meta AI presents LLaMA, a collection of foundation language models ranging from 7B to 65B parameters trained on publicly available data. LLaMA-13B outperforms GPT-3 on most benchmarks while being 10x smaller, enabling research on large language models with limited compute.', channel: '#ml-research', shared_by: '@bob' },
+      { link: 'https://arxiv.org/abs/2305.10403', title: 'Voyager: An Open-Ended Embodied Agent with Large Language Models', summary: 'Voyager is the first LLM-powered embodied lifelong learning agent in Minecraft. It uses GPT-4 to continuously explore the world, acquire diverse skills, and make novel discoveries without human intervention, outperforming prior agents in tech tree progression and world exploration.', channel: '#ai-agents', shared_by: '@carol' },
+      { link: 'https://arxiv.org/abs/2307.09288', title: 'Llama 2: Open Foundation and Fine-Tuned Chat Models', summary: 'Meta releases Llama 2, a family of pretrained and fine-tuned LLMs scaled from 7B to 70B parameters. Llama 2-Chat models are optimized for dialogue and outperform open-source chat models on most benchmarks. The paper includes a detailed safety evaluation and red-teaming methodology.', channel: '#ml-research', shared_by: '@alice' },
+      { link: 'https://arxiv.org/abs/2310.06825', title: 'Ring Attention with Blockwise Transformers for Near-Infinite Context', summary: 'This work introduces Ring Attention, a technique that distributes the self-attention computation across multiple devices in a ring topology, enabling training and inference on sequences of near-infinite length without memory bottlenecks, overcoming a key limitation of standard transformers.', channel: '#systems', shared_by: '@dave' },
+      { link: 'https://arxiv.org/abs/2312.11805', title: 'Gemini: A Family of Highly Capable Multimodal Models', summary: 'Google DeepMind presents Gemini, a family of multimodal models built to handle text, images, audio, and video. Gemini Ultra achieves state-of-the-art performance on 30 of 32 academic benchmarks examined, and is the first model to surpass human expert performance on MMLU.', channel: '#ml-research', shared_by: '@bob' },
+    ];
+    document.getElementById('feed').innerHTML = buildFeed(fallback);
+  }
+}
+
+loadPapers();
+</script>
+</body>
+</html>
