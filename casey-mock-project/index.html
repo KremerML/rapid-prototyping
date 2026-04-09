@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clothing Inventory Impact Treemap</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0f0f13;
+      color: #e8e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 22px 32px 14px;
+      border-bottom: 1px solid #1e1e2e;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      color: #fff;
+    }
+
+    header p {
+      font-size: 13px;
+      color: #555570;
+      margin-top: 3px;
+    }
+
+    .controls {
+      padding: 12px 32px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px solid #1a1a28;
+      flex-wrap: wrap;
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      margin-left: auto;
+      align-items: center;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    .legend-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 3px;
+    }
+
+    .filter-btn {
+      padding: 5px 13px;
+      border-radius: 6px;
+      border: 1px solid #2a2a3e;
+      background: #16161f;
+      color: #888;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+      background: #222236;
+      border-color: #4444aa;
+      color: #fff;
+    }
+
+    .filter-btn.active { color: #a0a0ff; }
+
+    /* View toggle */
+    .view-toggle {
+      display: flex;
+      gap: 2px;
+      background: #16161f;
+      border: 1px solid #2a2a3e;
+      border-radius: 7px;
+      padding: 3px;
+      margin-left: 8px;
+    }
+
+    .view-btn {
+      width: 30px;
+      height: 26px;
+      border-radius: 5px;
+      border: none;
+      background: transparent;
+      color: #555;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.14s;
+    }
+
+    .view-btn:hover { color: #aaa; }
+
+    .view-btn.active {
+      background: #2a2a42;
+      color: #a0a0ff;
+    }
+
+    .view-btn svg { display: block; }
+
+    /* ── List view ── */
+    #list-container {
+      flex: 1;
+      padding: 18px 32px;
+      display: none;
+      overflow-x: auto;
+    }
+
+    #list-container.visible { display: block; }
+
+    .list-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .list-table thead th {
+      text-align: left;
+      padding: 8px 14px 8px 0;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #3a3a55;
+      border-bottom: 1px solid #1a1a28;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.12s;
+    }
+
+    .list-table thead th:hover { color: #7070aa; }
+    .list-table thead th.sorted { color: #a0a0ff; }
+
+    .sort-arrow { margin-left: 4px; opacity: 0.6; }
+
+    .list-table tbody tr {
+      border-bottom: 1px solid #14141e;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .list-table tbody tr:hover { background: #16161f; }
+
+    .list-table td {
+      padding: 11px 14px 11px 0;
+      vertical-align: middle;
+    }
+
+    .list-table td:first-child { padding-left: 2px; }
+
+    .item-name-cell { display: flex; align-items: center; gap: 10px; }
+
+    .item-thumb {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      object-fit: cover;
+      background: #1e1e30;
+      flex-shrink: 0;
+      display: block;
+    }
+
+    .item-thumb-placeholder {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      background: #1e1e30;
+      flex-shrink: 0;
+    }
+
+    .item-name { font-weight: 600; color: #dde; font-size: 13px; }
+    .item-sku  { font-size: 11px; color: #3a3a55; margin-top: 1px; }
+
+    .cat-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      background: #1e1e2e;
+      color: #666;
+      white-space: nowrap;
+    }
+
+    .action-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pill-reduce {
+      background: rgba(200,40,40,0.14);
+      border: 1px solid rgba(220,60,60,0.28);
+      color: #ff7060;
+    }
+
+    .pill-wait {
+      background: rgba(40,180,100,0.12);
+      border: 1px solid rgba(60,200,110,0.24);
+      color: #50d080;
+    }
+
+    .revenue-cell { font-weight: 700; color: #ccc; }
+
+    .uplift-cell { font-weight: 700; }
+    .uplift-pos  { color: #50d090; }
+    .uplift-neg  { color: #ff7060; }
+
+    .days-cell { color: #888; }
+    .days-high { color: #ff8060; font-weight: 600; }
+
+    .price-advised { color: #ffa060; font-size: 12px; margin-top: 1px; }
+
+    #treemap-container {
+      flex: 1;
+      padding: 18px 32px;
+    }
+
+    #treemap svg { display: block; width: 100%; }
+
+    .cell { cursor: pointer; }
+
+    .cell rect {
+      stroke: #0f0f13;
+      stroke-width: 2px;
+      transition: filter 0.15s;
+    }
+
+    .cell:hover rect { filter: brightness(1.18); }
+
+    .cell-label {
+      pointer-events: none;
+      fill: rgba(255,255,255,0.93);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+
+    .cell-sub {
+      pointer-events: none;
+      fill: rgba(255,255,255,0.48);
+      font-size: 11px;
+    }
+
+    .cell-revenue {
+      pointer-events: none;
+      font-size: 11px;
+      font-weight: 700;
+      fill: rgba(255,255,255,0.7);
+    }
+
+    .cell-badge {
+      pointer-events: none;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    /* Tooltip */
+    #tooltip {
+      position: fixed;
+      background: #1c1c2e;
+      border: 1px solid #2e2e4e;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 13px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.12s;
+      max-width: 270px;
+      z-index: 100;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+    }
+
+    #tooltip.visible { opacity: 1; }
+
+    .tt-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .tt-cat {
+      font-size: 11px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 10px;
+    }
+
+    .tt-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 5px;
+      color: #888;
+    }
+
+    .tt-row span:last-child { color: #dde; font-weight: 500; }
+
+    .tt-uplift {
+      margin-top: 11px;
+      padding: 9px 12px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    /* Detail panel */
+    #detail-panel {
+      position: fixed;
+      right: 0; top: 0;
+      height: 100vh;
+      width: 350px;
+      background: #13131f;
+      border-left: 1px solid #1e1e2e;
+      transform: translateX(100%);
+      transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+      z-index: 200;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #detail-panel.open { transform: translateX(0); }
+
+    .panel-img-wrap {
+      position: relative;
+      width: 100%;
+      height: 210px;
+      background: #1a1a28;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .panel-img-wrap img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .panel-img-wrap img.loaded { opacity: 1; }
+
+    .panel-img-skeleton {
+      position: absolute; inset: 0;
+      background: linear-gradient(90deg, #1a1a28 25%, #22223a 50%, #1a1a28 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .panel-img-overlay {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 70px;
+      background: linear-gradient(to top, #13131f, transparent);
+    }
+
+    .panel-close {
+      position: absolute;
+      top: 11px; right: 11px;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #ccc;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: all 0.15s;
+    }
+
+    .panel-close:hover { background: rgba(0,0,0,0.8); color: #fff; }
+
+    .panel-body {
+      padding: 18px 22px 36px;
+      flex: 1;
+    }
+
+    .panel-cat {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #555;
+      margin-bottom: 3px;
+    }
+
+    .panel-name {
+      font-size: 21px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+      margin-bottom: 2px;
+    }
+
+    .panel-sku {
+      font-size: 12px;
+      color: #3a3a55;
+      margin-bottom: 18px;
+    }
+
+    /* ── Revenue hero block ── */
+    .revenue-hero {
+      border-radius: 12px;
+      padding: 18px 18px 16px;
+      margin-bottom: 4px;
+    }
+
+    .revenue-hero-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .revenue-hero-amount {
+      font-size: 44px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .revenue-hero-sub {
+      font-size: 12px;
+      opacity: 0.6;
+      line-height: 1.4;
+    }
+
+    /* reduce hero */
+    .hero-reduce {
+      background: linear-gradient(135deg, rgba(200,40,40,0.18), rgba(160,20,20,0.08));
+      border: 1px solid rgba(220,60,60,0.25);
+    }
+
+    .hero-reduce .revenue-hero-label { color: #ff8080; }
+    .hero-reduce .revenue-hero-amount { color: #fff; }
+
+    /* wait hero */
+    .hero-wait {
+      background: linear-gradient(135deg, rgba(40,180,100,0.15), rgba(20,130,70,0.06));
+      border: 1px solid rgba(60,200,110,0.2);
+    }
+
+    .hero-wait .revenue-hero-label { color: #60d090; }
+    .hero-wait .revenue-hero-amount { color: #fff; }
+
+    /* secondary revenue row */
+    .revenue-meta {
+      display: flex;
+      gap: 0;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #1e1e30;
+    }
+
+    .revenue-meta-cell {
+      flex: 1;
+      padding: 10px 12px;
+      border-right: 1px solid #1e1e30;
+    }
+
+    .revenue-meta-cell:last-child { border-right: none; }
+
+    .rmc-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #444;
+      margin-bottom: 3px;
+    }
+
+    .rmc-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ccc;
+    }
+
+    /* action CTA */
+    .markdown-cta {
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(255,80,60,0.22);
+      background: rgba(200,40,40,0.06);
+      margin-bottom: 4px;
+    }
+
+    .markdown-price-row {
+      padding: 14px 16px 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .md-old { font-size: 14px; color: #555; text-decoration: line-through; }
+    .md-arrow { font-size: 18px; color: #444; }
+    .md-new { font-size: 30px; font-weight: 800; color: #fff; letter-spacing: -1px; }
+    .md-badge {
+      background: rgba(255,100,60,0.2);
+      border: 1px solid rgba(255,100,60,0.35);
+      color: #ff8060;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+      margin-left: auto;
+    }
+
+    .markdown-savings {
+      padding: 0 16px 10px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .markdown-savings span { color: #ff9060; font-weight: 600; }
+
+    .btn-markdown {
+      display: block;
+      width: calc(100% - 24px);
+      margin: 0 12px 12px;
+      padding: 13px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #d83a3a, #b82222);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      box-shadow: 0 4px 14px rgba(180,30,30,0.4);
+    }
+
+    .btn-markdown:hover {
+      background: linear-gradient(135deg, #ee4848, #cc2828);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(200,40,40,0.5);
+    }
+
+    .btn-markdown.applied {
+      background: linear-gradient(135deg, #2a8a50, #1e6e3e);
+      box-shadow: 0 4px 14px rgba(40,140,80,0.3);
+      cursor: default;
+      transform: none;
+    }
+
+    /* wait CTA */
+    .wait-cta {
+      border-radius: 10px;
+      border: 1px solid rgba(60,190,100,0.18);
+      background: rgba(40,160,90,0.05);
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+
+    .wait-header {
+      padding: 14px 16px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .wait-icon {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: rgba(60,190,100,0.14);
+      border: 1px solid rgba(60,190,100,0.28);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .wait-title { font-size: 15px; font-weight: 700; color: #50d080; }
+    .wait-subtitle { font-size: 12px; color: #555; margin-top: 1px; }
+
+    .wait-timeline { padding: 4px 16px 14px; }
+
+    .tl-label {
+      font-size: 11px;
+      color: #444;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 7px;
+    }
+
+    .tl-track {
+      position: relative;
+      height: 4px;
+      background: #1e1e30;
+      border-radius: 2px;
+      margin-bottom: 5px;
+    }
+
+    .tl-fill {
+      position: absolute; left: 0; top: 0; height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #3cae6e, #60d090);
+    }
+
+    .tl-dots {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #444;
+    }
+
+    .tl-dots .now { color: #60d090; font-weight: 600; }
+
+    .wait-review-date {
+      padding: 0 16px 12px;
+      font-size: 12px;
+      color: #555;
+    }
+
+    .wait-review-date strong { color: #999; }
+
+    .btn-wait {
+      display: block;
+      width: calc(100% - 24px);
+      margin: 0 12px 12px;
+      padding: 11px;
+      border-radius: 8px;
+      border: 1px solid rgba(60,190,100,0.28);
+      background: rgba(60,190,100,0.09);
+      color: #50d080;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .btn-wait:hover { background: rgba(60,190,100,0.16); }
+
+    /* panel stats */
+    .panel-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: #3a3a55;
+      margin-bottom: 9px;
+      margin-top: 20px;
+    }
+
+    .panel-stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #18182a;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .panel-stat span:last-child { color: #bbb; font-weight: 500; }
+
+    .panel-rec {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #888;
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      display: flex;
+      gap: 28px;
+      padding: 12px 32px;
+      background: #0c0c14;
+      border-top: 1px solid #1a1a28;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill { display: flex; flex-direction: column; }
+    .stat-val { font-size: 18px; font-weight: 700; color: #fff; }
+    .stat-lbl { font-size: 11px; color: #3a3a55; margin-top: 1px; }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(14px);
+      background: #1a2e1a;
+      border: 1px solid #3a6a3a;
+      color: #80e080;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      opacity: 0;
+      transition: all 0.22s;
+      pointer-events: none;
+      z-index: 999;
+      white-space: nowrap;
+    }
+
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Clothing Inventory — Revenue Impact</h1>
+  <p>Box size = revenue at risk (units × price) &nbsp;·&nbsp; Click any item to see potential uplift &amp; recommended action</p>
+</header>
+
+<div class="controls">
+  <button class="filter-btn active" data-filter="all">All Items</button>
+  <button class="filter-btn" data-filter="reduce">Reduce Price Now</button>
+  <button class="filter-btn" data-filter="wait">Wait &amp; Monitor</button>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#d84040"></div>Reduce Price Now</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3cae6e"></div>Wait &amp; Monitor</div>
+  </div>
+
+  <!-- View toggle -->
+  <div class="view-toggle">
+    <button class="view-btn active" id="btn-view-treemap" title="Treemap view">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+        <rect x="0" y="0" width="8" height="8" rx="1.5"/>
+        <rect x="9" y="0" width="5" height="4" rx="1.5"/>
+        <rect x="9" y="5" width="5" height="3" rx="1.5"/>
+        <rect x="0" y="9" width="5" height="5" rx="1.5"/>
+        <rect x="6" y="9" width="8" height="5" rx="1.5"/>
+      </svg>
+    </button>
+    <button class="view-btn" id="btn-view-list" title="List view">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+        <rect x="0" y="1" width="14" height="2.5" rx="1.25"/>
+        <rect x="0" y="5.75" width="14" height="2.5" rx="1.25"/>
+        <rect x="0" y="10.5" width="14" height="2.5" rx="1.25"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<div id="treemap-container"><div id="treemap"></div></div>
+<div id="list-container"></div>
+<div class="stats-bar" id="stats-bar"></div>
+<div id="tooltip"></div>
+
+<div id="detail-panel">
+  <button class="panel-close" id="panel-close">✕</button>
+  <div class="panel-img-wrap" id="panel-img-wrap">
+    <div class="panel-img-skeleton" id="panel-img-skeleton"></div>
+    <img id="panel-img" src="" alt="" />
+    <div class="panel-img-overlay"></div>
+  </div>
+  <div class="panel-body" id="panel-content"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────
+// DATA  — impact = units × price  (revenue at stake)
+// Wide spread: biggest item ~25× larger than smallest
+// ─────────────────────────────────────────────────────────────────
+const catalogue = [
+  // ── Outerwear ─────────────────────────────────────────────────
+  { name:"Winter Parka",    sku:"OW-001", cat:"Outerwear",   price:249, cost:108, units:260, days:76, action:"reduce", markdownPct:22,
+    reason:"76 days in stock after winter peak. Deep inventory means cash is locked up. A 22% markdown clears stock before summer storage costs kick in.",
+    img:"https://images.unsplash.com/photo-1544923246-77307dd654cb?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Trench Coat",     sku:"OW-002", cat:"Outerwear",   price:169, cost:74,  units:145, days:44, action:"wait",   waitWeeks:3,
+    reason:"Spring trend data shows rising demand. Holding full price for 3 weeks maximises margin before any promotional push.",
+    img:"https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Rain Jacket",     sku:"OW-003", cat:"Outerwear",   price:109, cost:48,  units:88,  days:28, action:"wait",   waitWeeks:2,
+    reason:"April showers drive demand. Velocity expected to accelerate over the next fortnight.",
+    img:"https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Puffer Vest",     sku:"OW-004", cat:"Outerwear",   price:79,  cost:36,  units:72,  days:52, action:"reduce", markdownPct:15,
+    reason:"Seasonal miss. 52 days without meaningful velocity. A 15% markdown should clear stock before the summer reset.",
+    img:"https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=700&h=440&fit=crop&auto=format" },
+
+  // ── Tops ──────────────────────────────────────────────────────
+  { name:"Oxford Shirt",    sku:"TP-001", cat:"Tops",         price:75,  cost:30,  units:200, days:60, action:"reduce", markdownPct:10,
+    reason:"60 days with flat conversion. 10% off should break the stalemate and unlock latent demand.",
+    img:"https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Linen Blouse",    sku:"TP-002", cat:"Tops",         price:59,  cost:22,  units:155, days:38, action:"wait",   waitWeeks:3,
+    reason:"Summer peak approaches. Linen trend historically spikes in May–June. Hold full price.",
+    img:"https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Graphic Tee",     sku:"TP-003", cat:"Tops",         price:34,  cost:11,  units:95,  days:16, action:"wait",   waitWeeks:1,
+    reason:"Fast mover. Velocity strong. Reorder candidate — no markdown needed.",
+    img:"https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Crop Top",        sku:"TP-004", cat:"Tops",         price:29,  cost:10,  units:55,  days:12, action:"wait",   waitWeeks:1,
+    reason:"High social velocity. Trending item. Hold full price.",
+    img:"https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=700&h=440&fit=crop&auto=format" },
+
+  // ── Bottoms ───────────────────────────────────────────────────
+  { name:"Wide Leg Jeans",  sku:"BT-001", cat:"Bottoms",      price:119, cost:50,  units:310, days:32, action:"wait",   waitWeeks:4,
+    reason:"Top trending silhouette. Strong organic conversion. Hold full price for 4 weeks to maximise margin before any promo.",
+    img:"https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Slim Chinos",     sku:"BT-002", cat:"Bottoms",      price:89,  cost:38,  units:180, days:57, action:"reduce", markdownPct:18,
+    reason:"Style waning per trend index. 57 days without velocity. 18% markdown recovers space and margin before the season closes.",
+    img:"https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Track Pants",     sku:"BT-003", cat:"Bottoms",      price:68,  cost:28,  units:160, days:45, action:"reduce", markdownPct:10,
+    reason:"Athleisure demand softening. 45 days idle. A 10% nudge should restart velocity.",
+    img:"https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Mini Skirt",      sku:"BT-004", cat:"Bottoms",      price:48,  cost:18,  units:45,  days:11, action:"wait",   waitWeeks:4,
+    reason:"New arrival. Trending on TikTok. Protect full margin while organic demand builds.",
+    img:"https://images.unsplash.com/photo-1583496661160-fb5218afa9a4?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Cargo Shorts",    sku:"BT-005", cat:"Bottoms",      price:55,  cost:22,  units:40,  days:27, action:"wait",   waitWeeks:2,
+    reason:"Summer entry point. Demand building steadily. No action needed yet.",
+    img:"https://images.unsplash.com/photo-1591195853828-11db59a44f43?w=700&h=440&fit=crop&auto=format" },
+
+  // ── Footwear ──────────────────────────────────────────────────
+  { name:"Leather Sneakers",sku:"FW-001", cat:"Footwear",     price:195, cost:85,  units:225, days:66, action:"reduce", markdownPct:20,
+    reason:"66 days — worst performer in footwear by days. High unit value makes this the single biggest cash unlock available. 20% off moves stock.",
+    img:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Chelsea Boots",   sku:"FW-002", cat:"Footwear",     price:159, cost:72,  units:148, days:54, action:"reduce", markdownPct:22,
+    reason:"Post-season overhang. 54 days. Sell through before new autumn range lands.",
+    img:"https://images.unsplash.com/photo-1638247025967-b4e38f787b76?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Sandals",         sku:"FW-003", cat:"Footwear",     price:72,  cost:30,  units:140, days:18, action:"wait",   waitWeeks:2,
+    reason:"Summer ramp-up. On-trend. No markdown needed — demand accelerating.",
+    img:"https://images.unsplash.com/photo-1603487742131-4160ec999306?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Platform Clogs",  sku:"FW-004", cat:"Footwear",     price:92,  cost:42,  units:38,  days:36, action:"wait",   waitWeeks:3,
+    reason:"Niche item but growing search trend. Give it 3 more weeks before reassessing.",
+    img:"https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=700&h=440&fit=crop&auto=format" },
+
+  // ── Accessories ───────────────────────────────────────────────
+  { name:"Wool Scarf",      sku:"AC-001", cat:"Accessories",  price:62,  cost:22,  units:210, days:82, action:"reduce", markdownPct:30,
+    reason:"82 days — longest sitting item across all categories. Seasonal miss. Aggressive 30% markdown needed to free up floor space before summer.",
+    img:"https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Belt",            sku:"AC-002", cat:"Accessories",  price:46,  cost:17,  units:95,  days:42, action:"reduce", markdownPct:12,
+    reason:"Low engagement mid-cycle. Small markdown can drive bundle attach rate with trousers and skirts.",
+    img:"https://images.unsplash.com/photo-1624222247344-550fb60583dc?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Sunglasses",      sku:"AC-003", cat:"Accessories",  price:68,  cost:28,  units:35,  days:14, action:"wait",   waitWeeks:2,
+    reason:"Summer pull approaching. Strong upsell item at checkout. No action.",
+    img:"https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Canvas Tote",     sku:"AC-004", cat:"Accessories",  price:28,  cost:9,   units:30,  days:9,  action:"wait",   waitWeeks:1,
+    reason:"Perennial fast mover. Reorder watchlist, not a markdown.",
+    img:"https://images.unsplash.com/photo-1591561954555-607968c989ab?w=700&h=440&fit=crop&auto=format" },
+
+  // ── Knitwear ──────────────────────────────────────────────────
+  { name:"Merino Sweater",  sku:"KN-001", cat:"Knitwear",     price:185, cost:80,  units:195, days:72, action:"reduce", markdownPct:25,
+    reason:"72 days, end of cold season. Highest revenue-at-risk in knitwear. 25% off clears stock before storage fees compound the loss.",
+    img:"https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Cardigan",        sku:"KN-002", cat:"Knitwear",     price:89,  cost:38,  units:140, days:54, action:"reduce", markdownPct:15,
+    reason:"Season winding down. Batch markdown opportunity alongside Turtleneck.",
+    img:"https://images.unsplash.com/photo-1467043198406-dc953a3defa0?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Turtleneck",      sku:"KN-003", cat:"Knitwear",     price:76,  cost:33,  units:105, days:50, action:"reduce", markdownPct:15,
+    reason:"Aligned with Cardigan's velocity curve. Bundle markdown recommended to move both.",
+    img:"https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=700&h=440&fit=crop&auto=format" },
+
+  { name:"Knit Vest",       sku:"KN-004", cat:"Knitwear",     price:55,  cost:23,  units:42,  days:26, action:"wait",   waitWeeks:3,
+    reason:"Transitional piece with spring appeal. Can carry into the next season at full price.",
+    img:"https://images.unsplash.com/photo-1483985988355-763728e1935b?w=700&h=440&fit=crop&auto=format" },
+];
+
+// ── Derived fields ────────────────────────────────────────────────
+// impact  = units × price  (revenue at risk — drives treemap size)
+// uplift  = conservative profit-recovery estimate
+//   reduce → (units × newPrice × 0.85) − (units × cost)
+//   wait   → (units × price   × 0.72) − (units × cost)
+catalogue.forEach(d => {
+  d.impact = d.units * d.price;
+  if (d.action === 'reduce') {
+    const np = Math.round(d.price * (1 - d.markdownPct / 100));
+    d.newPrice   = np;
+    d.uplift     = Math.round(d.units * np * 0.85 - d.units * d.cost);
+    d.marginNew  = Math.round(((np - d.cost) / np) * 100);
+  } else {
+    d.uplift = Math.round(d.units * d.price * 0.72 - d.units * d.cost);
+  }
+  d.marginCur = Math.round(((d.price - d.cost) / d.price) * 100);
+});
+
+const totalImpact = catalogue.reduce((s, d) => s + d.impact, 0);
+
+// Nest into D3 hierarchy
+const catMap = {};
+catalogue.forEach(d => {
+  if (!catMap[d.cat]) catMap[d.cat] = [];
+  catMap[d.cat].push(d);
+});
+
+const hierarchyData = {
+  name: "Inventory",
+  children: Object.entries(catMap).map(([cat, items]) => ({ name: cat, children: items }))
+};
+
+// ── Colors ────────────────────────────────────────────────────────
+const colorReduce = d => d3.interpolateRgb("#aa2828","#ff3838")(Math.min(d.days / 82, 1));
+const colorWait   = d => d3.interpolateRgb("#28966a","#22e87a")(Math.min(d.days / 82, 1) * 0.5 + 0.1);
+const getColor    = d => d.action === 'reduce' ? colorReduce(d) : colorWait(d);
+
+// ── Format helpers ────────────────────────────────────────────────
+const fmt = n => '$' + n.toLocaleString('en-US');
+
+function reviewDate(weeks) {
+  const d = new Date();
+  d.setDate(d.getDate() + weeks * 7);
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+
+// ── Stats bar ─────────────────────────────────────────────────────
+function renderStats(items) {
+  const bar   = document.getElementById('stats-bar');
+  const red   = items.filter(d => d.action === 'reduce');
+  const totalRev = items.reduce((s, d) => s + d.impact, 0);
+  const totalUp  = items.reduce((s, d) => s + Math.max(0, d.uplift), 0);
+  const avgDays  = Math.round(items.reduce((s, d) => s + d.days, 0) / items.length);
+
+  bar.innerHTML = `
+    <div class="stat-pill"><div class="stat-val">${items.length}</div><div class="stat-lbl">SKUs tracked</div></div>
+    <div class="stat-pill"><div class="stat-val">${fmt(totalRev)}</div><div class="stat-lbl">Total revenue at risk</div></div>
+    <div class="stat-pill"><div class="stat-val" style="color:#60d090">${fmt(totalUp)}</div><div class="stat-lbl">Potential gross uplift</div></div>
+    <div class="stat-pill"><div class="stat-val" style="color:#ff7070">${red.length}</div><div class="stat-lbl">Reduce price now</div></div>
+    <div class="stat-pill"><div class="stat-val">${avgDays}d</div><div class="stat-lbl">Avg days in stock</div></div>
+  `;
+}
+
+renderStats(catalogue);
+
+// ── Treemap ───────────────────────────────────────────────────────
+let currentFilter = 'all';
+
+function filteredItems(f) {
+  return f === 'all' ? catalogue : catalogue.filter(d => d.action === f);
+}
+
+function getHierarchy(f) {
+  const items = filteredItems(f);
+  const cm = {};
+  items.forEach(d => { if (!cm[d.cat]) cm[d.cat] = []; cm[d.cat].push(d); });
+  return { name:"Inventory", children: Object.entries(cm).map(([c,ch]) => ({name:c, children:ch})) };
+}
+
+function renderTreemap(filter) {
+  const container = document.getElementById('treemap');
+  container.innerHTML = '';
+
+  const W = container.parentElement.offsetWidth - 64;
+  const H = Math.max(400, window.innerHeight - 235);
+
+  const root = d3.hierarchy(getHierarchy(filter))
+    .sum(d => d.impact || 0)
+    .sort((a, b) => b.value - a.value);
+
+  d3.treemap().size([W, H]).padding(3).paddingTop(0).round(true)(root);
+
+  const svg = d3.select('#treemap').append('svg').attr('width', W).attr('height', H);
+  const cell = svg.selectAll('g')
+    .data(root.leaves())
+    .join('g')
+    .attr('class', 'cell')
+    .attr('transform', d => `translate(${d.x0},${d.y0})`);
+
+  cell.append('rect')
+    .attr('width',  d => Math.max(0, d.x1 - d.x0))
+    .attr('height', d => Math.max(0, d.y1 - d.y0))
+    .attr('rx', 5)
+    .attr('fill', d => getColor(d.data));
+
+  cell.each(function(d) {
+    const w = d.x1 - d.x0, h = d.y1 - d.y0;
+    const g = d3.select(this);
+    if (w < 38 || h < 26) return;
+
+    if (h > 50 && w > 72)
+      g.append('text').attr('class','cell-label').attr('x',8).attr('y',21)
+       .text(d.data.name.length > 15 ? d.data.name.slice(0,13)+'…' : d.data.name);
+
+    if (h > 70 && w > 85)
+      g.append('text').attr('class','cell-revenue').attr('x',8).attr('y',37)
+       .text(fmt(d.data.impact));
+
+    if (h > 90 && w > 85)
+      g.append('text').attr('class','cell-sub').attr('x',8).attr('y',51)
+       .text(`${d.data.units} units · ${d.data.days}d`);
+
+    if (h > 110 && w > 85) {
+      const label = d.data.action === 'reduce' ? '↓ REDUCE' : '◉ WAIT';
+      const col   = d.data.action === 'reduce' ? 'rgba(255,130,110,0.95)' : 'rgba(90,220,130,0.92)';
+      g.append('text').attr('class','cell-badge').attr('x',8).attr('y',h-11)
+       .attr('fill',col).text(label);
+    }
+  });
+
+  const tooltip = document.getElementById('tooltip');
+
+  cell
+    .on('mousemove', function(event, d) {
+      const it = d.data;
+      const upliftColor = it.uplift > 0 ? '#60d090' : '#ff8060';
+      const actionHtml = it.action === 'reduce'
+        ? `<div class="tt-uplift" style="background:rgba(200,40,40,0.15);border:1px solid rgba(220,60,60,0.3);color:#ff8060">
+             Reduce ${it.markdownPct}% → <strong>${fmt(it.newPrice)}</strong> &nbsp;·&nbsp; Recover <strong>${fmt(it.uplift)}</strong>
+           </div>`
+        : `<div class="tt-uplift" style="background:rgba(40,160,90,0.12);border:1px solid rgba(60,200,100,0.25);color:#50d080">
+             Hold ${it.waitWeeks}w → Earn <strong>${fmt(it.uplift)}</strong> gross profit
+           </div>`;
+      tooltip.innerHTML = `
+        <div class="tt-name">${it.name}</div>
+        <div class="tt-cat">${it.cat} · ${it.sku}</div>
+        <div class="tt-row"><span>Revenue at risk</span><span>${fmt(it.impact)}</span></div>
+        <div class="tt-row"><span>Price</span><span>${fmt(it.price)}</span></div>
+        <div class="tt-row"><span>Units</span><span>${it.units}</span></div>
+        <div class="tt-row"><span>Days in stock</span><span>${it.days}d</span></div>
+        ${actionHtml}
+      `;
+      tooltip.classList.add('visible');
+      tooltip.style.left = Math.min(event.clientX + 16, window.innerWidth - 290) + 'px';
+      tooltip.style.top  = Math.min(event.clientY + 12, window.innerHeight - 210) + 'px';
+    })
+    .on('mouseleave', () => tooltip.classList.remove('visible'))
+    .on('click', (event, d) => { tooltip.classList.remove('visible'); openPanel(d.data); });
+}
+
+// ── Detail panel ──────────────────────────────────────────────────
+function openPanel(item) {
+  const panel   = document.getElementById('detail-panel');
+  const content = document.getElementById('panel-content');
+  const imgEl   = document.getElementById('panel-img');
+  const skel    = document.getElementById('panel-img-skeleton');
+
+  // Image load
+  imgEl.classList.remove('loaded');
+  skel.style.display = 'block';
+  imgEl.src = '';
+  const tmp = new Image();
+  tmp.onload  = () => { imgEl.src = item.img; imgEl.classList.add('loaded'); skel.style.display = 'none'; };
+  tmp.onerror = () => { skel.style.display = 'none'; };
+  tmp.src = item.img;
+
+  const impactPct = Math.round((item.impact / totalImpact) * 100 * 10) / 10;
+
+  // ── Revenue hero ──
+  let heroHtml = '';
+  if (item.action === 'reduce') {
+    heroHtml = `
+      <div class="revenue-hero hero-reduce">
+        <div class="revenue-hero-label">↓ Gross profit recoverable by marking down</div>
+        <div class="revenue-hero-amount">${fmt(item.uplift)}</div>
+        <div class="revenue-hero-sub">Based on ${item.units} units sold at ${fmt(item.newPrice)} with 85% sell-through, minus cost</div>
+      </div>`;
+  } else {
+    heroHtml = `
+      <div class="revenue-hero hero-wait">
+        <div class="revenue-hero-label">◉ Gross profit at full price if you wait</div>
+        <div class="revenue-hero-amount">${fmt(item.uplift)}</div>
+        <div class="revenue-hero-sub">Based on ${item.units} units sold at ${fmt(item.price)} with 72% sell-through, minus cost</div>
+      </div>`;
+  }
+
+  // ── Secondary revenue row ──
+  const metaHtml = `
+    <div class="revenue-meta">
+      <div class="revenue-meta-cell">
+        <div class="rmc-label">Revenue at risk</div>
+        <div class="rmc-value">${fmt(item.impact)}</div>
+      </div>
+      <div class="revenue-meta-cell">
+        <div class="rmc-label">Current margin</div>
+        <div class="rmc-value">${item.marginCur}%</div>
+      </div>
+      <div class="revenue-meta-cell">
+        <div class="rmc-label">Days in stock</div>
+        <div class="rmc-value">${item.days}d</div>
+      </div>
+    </div>`;
+
+  // ── CTA ──
+  let ctaHtml = '';
+  if (item.action === 'reduce') {
+    ctaHtml = `
+      <div class="markdown-cta">
+        <div class="markdown-price-row">
+          <span class="md-old">${fmt(item.price)}</span>
+          <span class="md-arrow">→</span>
+          <span class="md-new">${fmt(item.newPrice)}</span>
+          <span class="md-badge">−${item.markdownPct}%</span>
+        </div>
+        <div class="markdown-savings">
+          New margin <span>${item.marginNew}%</span> &nbsp;·&nbsp; Customer saves <span>${fmt(item.price - item.newPrice)}</span>
+        </div>
+        <button class="btn-markdown" id="btn-apply" data-sku="${item.sku}" data-name="${item.name}" data-price="${item.newPrice}">
+          Apply Markdown → ${fmt(item.newPrice)}
+        </button>
+      </div>`;
+  } else {
+    const rd = reviewDate(item.waitWeeks);
+    const progress = Math.min(Math.round((item.days / 30) * 40), 88);
+    ctaHtml = `
+      <div class="wait-cta">
+        <div class="wait-header">
+          <div class="wait-icon">⏳</div>
+          <div>
+            <div class="wait-title">Hold for ${item.waitWeeks} week${item.waitWeeks > 1 ? 's' : ''}</div>
+            <div class="wait-subtitle">Review on ${rd}</div>
+          </div>
+        </div>
+        <div class="wait-timeline">
+          <div class="tl-label">Cycle progress</div>
+          <div class="tl-track"><div class="tl-fill" style="width:${progress}%"></div></div>
+          <div class="tl-dots"><span class="now">Now</span><span>Review</span><span>Action</span></div>
+        </div>
+        <div class="wait-review-date">Next review: <strong>${rd}</strong></div>
+        <button class="btn-wait" id="btn-snooze" data-name="${item.name}" data-weeks="${item.waitWeeks}">
+          ◉ Set reminder for ${rd}
+        </button>
+      </div>`;
+  }
+
+  const recStyle = item.action === 'reduce'
+    ? 'background:rgba(200,40,40,0.05);border:1px solid rgba(200,40,40,0.1)'
+    : 'background:rgba(40,160,90,0.05);border:1px solid rgba(40,160,90,0.1)';
+
+  content.innerHTML = `
+    <div class="panel-cat">${item.cat}</div>
+    <div class="panel-name">${item.name}</div>
+    <div class="panel-sku">SKU: ${item.sku}</div>
+
+    ${heroHtml}
+    ${metaHtml}
+    ${ctaHtml}
+
+    <div class="panel-section-title">Inventory Detail</div>
+    <div class="panel-stat"><span>Units in stock</span><span>${item.units}</span></div>
+    <div class="panel-stat"><span>Current price</span><span>${fmt(item.price)}</span></div>
+    <div class="panel-stat"><span>Unit cost</span><span>${fmt(item.cost)}</span></div>
+    ${item.action === 'reduce' ? `<div class="panel-stat"><span>Advised price</span><span style="color:#ffa060">${fmt(item.newPrice)}</span></div>` : ''}
+    <div class="panel-stat"><span>Share of total impact</span><span>${impactPct}%</span></div>
+
+    <div class="panel-section-title">Analysis</div>
+    <div class="panel-rec" style="${recStyle}">${item.reason}</div>
+  `;
+
+  // Button wiring
+  document.getElementById('btn-apply')?.addEventListener('click', function() {
+    if (this.classList.contains('applied')) return;
+    this.classList.add('applied');
+    this.textContent = '✓ Markdown Applied';
+    showToast(`Markdown applied: ${this.dataset.name} → ${fmt(+this.dataset.price)}`);
+  });
+
+  document.getElementById('btn-snooze')?.addEventListener('click', function() {
+    this.textContent = '✓ Reminder Set';
+    this.style.opacity = '0.55';
+    this.disabled = true;
+    showToast(`Reminder set: ${this.dataset.name} in ${this.dataset.weeks}w`);
+  });
+
+  panel.classList.add('open');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = '✓ ' + msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+document.getElementById('panel-close').addEventListener('click', () => {
+  document.getElementById('detail-panel').classList.remove('open');
+});
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    currentFilter = this.dataset.filter;
+    if (currentView === 'treemap') renderTreemap(currentFilter);
+    else renderList(currentFilter);
+    renderStats(filteredItems(currentFilter));
+  });
+});
+
+window.addEventListener('resize', () => { if (currentView === 'treemap') renderTreemap(currentFilter); });
+renderTreemap('all');
+
+// ── List view ─────────────────────────────────────────────────────
+let currentView   = 'treemap';
+let sortKey       = 'impact';
+let sortDir       = -1; // -1 = desc
+
+const COL_DEFS = [
+  { key: 'name',    label: 'Item',              sortable: false },
+  { key: 'cat',     label: 'Category',          sortable: true  },
+  { key: 'action',  label: 'Action',            sortable: true  },
+  { key: 'impact',  label: 'Revenue at risk',   sortable: true  },
+  { key: 'uplift',  label: 'Potential uplift',  sortable: true  },
+  { key: 'price',   label: 'Price',             sortable: true  },
+  { key: 'units',   label: 'Units',             sortable: true  },
+  { key: 'days',    label: 'Days in stock',     sortable: true  },
+];
+
+function renderList(filter) {
+  const container = document.getElementById('list-container');
+  let items = filteredItems(filter).slice();
+
+  // Sort
+  items.sort((a, b) => {
+    const av = a[sortKey], bv = b[sortKey];
+    if (typeof av === 'string') return sortDir * av.localeCompare(bv);
+    return sortDir * (av - bv);
+  });
+
+  const headerCells = COL_DEFS.map(c => {
+    const arrow = c.key === sortKey ? (sortDir === -1 ? ' ↓' : ' ↑') : '';
+    const sorted = c.key === sortKey ? ' sorted' : '';
+    const click = c.sortable ? `data-sortkey="${c.key}"` : '';
+    return `<th class="col-${c.key}${sorted}" ${click}>${c.label}<span class="sort-arrow">${arrow}</span></th>`;
+  }).join('');
+
+  const rows = items.map(it => {
+    const upliftColor = it.uplift > 0 ? 'uplift-pos' : 'uplift-neg';
+    const daysClass   = it.days > 60 ? 'days-high' : 'days-cell';
+    const actionPill  = it.action === 'reduce'
+      ? `<span class="action-pill pill-reduce">↓ Reduce ${it.markdownPct}%</span>`
+      : `<span class="action-pill pill-wait">◉ Wait ${it.waitWeeks}w</span>`;
+    const priceAdv = it.action === 'reduce'
+      ? `<div class="price-advised">→ ${fmt(it.newPrice)}</div>`
+      : '';
+
+    return `<tr data-sku="${it.sku}">
+      <td>
+        <div class="item-name-cell">
+          <img class="item-thumb" src="${it.img}" alt="" loading="lazy" onerror="this.style.display='none'">
+          <div>
+            <div class="item-name">${it.name}</div>
+            <div class="item-sku">${it.sku}</div>
+          </div>
+        </div>
+      </td>
+      <td><span class="cat-badge">${it.cat}</span></td>
+      <td>${actionPill}</td>
+      <td class="revenue-cell">${fmt(it.impact)}</td>
+      <td class="${upliftColor} uplift-cell">${fmt(it.uplift)}</td>
+      <td><div>${fmt(it.price)}</div>${priceAdv}</td>
+      <td>${it.units}</td>
+      <td class="${daysClass}">${it.days}d</td>
+    </tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <table class="list-table">
+      <thead><tr>${headerCells}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  // Sort on header click
+  container.querySelectorAll('th[data-sortkey]').forEach(th => {
+    th.addEventListener('click', () => {
+      const k = th.dataset.sortkey;
+      if (sortKey === k) sortDir *= -1;
+      else { sortKey = k; sortDir = -1; }
+      renderList(currentFilter);
+    });
+  });
+
+  // Row click → panel
+  container.querySelectorAll('tbody tr').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const it = catalogue.find(d => d.sku === tr.dataset.sku);
+      if (it) openPanel(it);
+    });
+  });
+}
+
+// ── View toggle wiring ────────────────────────────────────────────
+document.getElementById('btn-view-treemap').addEventListener('click', () => {
+  if (currentView === 'treemap') return;
+  currentView = 'treemap';
+  document.getElementById('btn-view-treemap').classList.add('active');
+  document.getElementById('btn-view-list').classList.remove('active');
+  document.getElementById('treemap-container').style.display = '';
+  document.getElementById('list-container').classList.remove('visible');
+  renderTreemap(currentFilter);
+});
+
+document.getElementById('btn-view-list').addEventListener('click', () => {
+  if (currentView === 'list') return;
+  currentView = 'list';
+  document.getElementById('btn-view-list').classList.add('active');
+  document.getElementById('btn-view-treemap').classList.remove('active');
+  document.getElementById('treemap-container').style.display = 'none';
+  document.getElementById('list-container').classList.add('visible');
+  renderList(currentFilter);
+});
+</script>
+</body>
+</html>
