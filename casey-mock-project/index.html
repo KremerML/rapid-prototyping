@@ -1191,6 +1191,11 @@ function openPanel(item) {
     this.classList.add('applied');
     this.textContent = '✓ Markdown Applied';
     showToast(`Markdown applied: ${this.dataset.name} → ${fmt(+this.dataset.price)}`);
+    fetch('http://localhost:8000/api/recommendations/accept', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sku_id: this.dataset.sku, recommended_price: +this.dataset.price }),
+    }).catch(err => console.warn('Inventory sync failed:', err));
   });
 
   document.getElementById('btn-snooze')?.addEventListener('click', function() {

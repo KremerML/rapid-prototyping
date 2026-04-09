@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MoreWear — Inventory Management System</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 13px;
+    background: #f0f2f5;
+    color: #1a1a2e;
+  }
+
+  /* ── Top bar ─────────────────────────────────────────────────────────── */
+  #topbar {
+    background: #1a1a2e;
+    color: #e8e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    height: 44px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  #topbar .brand {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  #topbar .brand span {
+    color: #a78bfa;
+  }
+  #topbar .meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: #9999bb;
+  }
+  #topbar .meta select {
+    background: #2e2e4a;
+    color: #e8e8f0;
+    border: 1px solid #44446a;
+    border-radius: 3px;
+    padding: 3px 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  #sse-indicator {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+  }
+  #sse-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #555577;
+    transition: background 0.3s;
+  }
+  #sse-dot.connected  { background: #4ade80; }
+  #sse-dot.connecting { background: #facc15; }
+  #sse-dot.error      { background: #f87171; }
+
+  /* ── Toolbar ─────────────────────────────────────────────────────────── */
+  #toolbar {
+    background: #ffffff;
+    border-bottom: 1px solid #dde1ea;
+    padding: 8px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  #toolbar label { font-size: 12px; color: #666; }
+  #toolbar select, #toolbar input {
+    border: 1px solid #cdd3de;
+    border-radius: 3px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: #1a1a2e;
+    background: #fff;
+  }
+  #toolbar select:focus, #toolbar input:focus {
+    outline: none;
+    border-color: #7c3aed;
+  }
+  #row-count {
+    margin-left: auto;
+    font-size: 12px;
+    color: #888;
+  }
+
+  /* ── Table ───────────────────────────────────────────────────────────── */
+  #table-wrapper {
+    overflow-x: auto;
+    padding: 16px 20px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  thead tr {
+    background: #1a1a2e;
+    color: #c8c8e8;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+  th {
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  th:hover { background: #2e2e4a; }
+  th .sort-arrow { margin-left: 4px; opacity: 0.4; }
+  th.sorted .sort-arrow { opacity: 1; color: #a78bfa; }
+
+  tbody tr {
+    border-bottom: 1px solid #eceef2;
+    transition: background 0.15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f6f7fb !important; }
+
+  td {
+    padding: 9px 12px;
+    white-space: nowrap;
+    color: #2a2a40;
+  }
+
+  /* Status badge */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .badge-active    { background: #e8f5e9; color: #2e7d32; }
+  .badge-markdown  { background: #fff3e0; color: #e65100; }
+
+  /* Row states */
+  tr.on-markdown   { background: #fffbf0; }
+  tr.flash-update  { animation: rowFlash 1.5s ease-out forwards; }
+
+  @keyframes rowFlash {
+    0%   { background: #bbf7d0; }
+    60%  { background: #bbf7d0; }
+    100% { background: inherit; }
+  }
+  /* If the row ends up on-markdown after the flash */
+  tr.flash-update.on-markdown {
+    animation: rowFlashMarkdown 1.5s ease-out forwards;
+  }
+  @keyframes rowFlashMarkdown {
+    0%   { background: #bbf7d0; }
+    60%  { background: #bbf7d0; }
+    100% { background: #fffbf0; }
+  }
+
+  /* Price columns */
+  .price { text-align: right; font-variant-numeric: tabular-nums; }
+  .price-reduced { color: #e65100; font-weight: 600; }
+
+  /* Empty state */
+  #empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #aaa;
+    font-size: 13px;
+  }
+
+  /* Loading */
+  #loading {
+    text-align: center;
+    padding: 60px;
+    color: #999;
+  }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div id="topbar">
+  <div class="brand">MoreWear <span>|</span> Inventory Management System</div>
+  <div class="meta">
+    <span id="current-date"></span>
+    <div id="sse-indicator">
+      <div id="sse-dot" class="connecting"></div>
+      <span id="sse-label">Connecting…</span>
+    </div>
+  </div>
+</div>
+
+<!-- Filters toolbar -->
+<div id="toolbar">
+  <label>Store</label>
+  <select id="filter-store">
+    <option value="">All Stores</option>
+    <option>Amsterdam Centrum</option>
+    <option>Rotterdam Zuid</option>
+    <option>Utrecht Hoog Catharijne</option>
+    <option>Den Haag Centrum</option>
+  </select>
+
+  <label>Category</label>
+  <select id="filter-category">
+    <option value="">All Categories</option>
+    <option>Tops</option>
+    <option>Bottoms</option>
+    <option>Outerwear</option>
+    <option>Dresses</option>
+    <option>Accessories</option>
+  </select>
+
+  <label>Status</label>
+  <select id="filter-status">
+    <option value="">All Statuses</option>
+    <option>Active</option>
+    <option>On Markdown</option>
+  </select>
+
+  <label>Search</label>
+  <input type="text" id="filter-search" placeholder="SKU or product…" style="width:180px">
+
+  <span id="row-count"></span>
+</div>
+
+<!-- Table -->
+<div id="table-wrapper">
+  <div id="loading">Loading inventory…</div>
+  <table id="inventory-table" style="display:none">
+    <thead>
+      <tr>
+        <th data-col="sku_id">SKU ID <span class="sort-arrow">↕</span></th>
+        <th data-col="product_name">Product <span class="sort-arrow">↕</span></th>
+        <th data-col="category">Category <span class="sort-arrow">↕</span></th>
+        <th data-col="store">Store <span class="sort-arrow">↕</span></th>
+        <th data-col="stock_quantity">Stock <span class="sort-arrow">↕</span></th>
+        <th data-col="original_price" class="price">Orig. Price <span class="sort-arrow">↕</span></th>
+        <th data-col="current_price" class="price">Curr. Price <span class="sort-arrow">↕</span></th>
+        <th data-col="weeks_on_shelf">Weeks <span class="sort-arrow">↕</span></th>
+        <th data-col="status">Status <span class="sort-arrow">↕</span></th>
+        <th data-col="last_updated">Last Updated <span class="sort-arrow">↕</span></th>
+      </tr>
+    </thead>
+    <tbody id="inventory-tbody"></tbody>
+  </table>
+  <div id="empty-state" style="display:none">No items match the current filters.</div>
+</div>
+
+<script>
+const API_BASE = '';  // same origin; change to 'http://localhost:8000' if opening file directly
+
+// ── State ────────────────────────────────────────────────────────────────────
+let allItems   = [];   // master list, updated by SSE
+let sortCol    = 'sku_id';
+let sortAsc    = true;
+
+// ── Utilities ────────────────────────────────────────────────────────────────
+function fmt(n) {
+  return '€' + Number(n).toFixed(2);
+}
+function fmtDate(s) {
+  if (!s) return '—';
+  return s.replace('T', ' ').slice(0, 16);
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function getFilters() {
+  return {
+    store:    document.getElementById('filter-store').value,
+    category: document.getElementById('filter-category').value,
+    status:   document.getElementById('filter-status').value,
+    search:   document.getElementById('filter-search').value.toLowerCase().trim(),
+  };
+}
+
+function applyFilters(items) {
+  const f = getFilters();
+  return items.filter(item => {
+    if (f.store    && item.store    !== f.store)    return false;
+    if (f.category && item.category !== f.category) return false;
+    if (f.status   && item.status   !== f.status)   return false;
+    if (f.search   && !item.sku_id.toLowerCase().includes(f.search)
+                   && !item.product_name.toLowerCase().includes(f.search)) return false;
+    return true;
+  });
+}
+
+function sortItems(items) {
+  return [...items].sort((a, b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ? 1 : -1;
+    return 0;
+  });
+}
+
+function renderTable(flashSkuId = null) {
+  const tbody   = document.getElementById('inventory-tbody');
+  const table   = document.getElementById('inventory-table');
+  const empty   = document.getElementById('empty-state');
+  const counter = document.getElementById('row-count');
+
+  const filtered = applyFilters(allItems);
+  const sorted   = sortItems(filtered);
+
+  counter.textContent = `${filtered.length} of ${allItems.length} items`;
+
+  if (sorted.length === 0) {
+    table.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  table.style.display = '';
+  empty.style.display = 'none';
+
+  tbody.innerHTML = '';
+  for (const item of sorted) {
+    const tr = document.createElement('tr');
+    const onMarkdown = item.status === 'On Markdown';
+    if (onMarkdown) tr.classList.add('on-markdown');
+
+    const priceClass = item.current_price < item.original_price ? 'price-reduced' : '';
+
+    tr.innerHTML = `
+      <td><code>${item.sku_id}</code></td>
+      <td>${item.product_name}</td>
+      <td>${item.category}</td>
+      <td>${item.store}</td>
+      <td style="text-align:right">${item.stock_quantity}</td>
+      <td class="price">${fmt(item.original_price)}</td>
+      <td class="price ${priceClass}">${fmt(item.current_price)}</td>
+      <td style="text-align:right">${item.weeks_on_shelf}w</td>
+      <td><span class="badge ${onMarkdown ? 'badge-markdown' : 'badge-active'}">${item.status}</span></td>
+      <td>${fmtDate(item.last_updated)}</td>
+    `;
+    tr.dataset.skuId = item.sku_id;
+
+    if (item.sku_id === flashSkuId) {
+      tr.classList.add('flash-update');
+      tr.addEventListener('animationend', () => tr.classList.remove('flash-update'));
+    }
+
+    tbody.appendChild(tr);
+  }
+
+  // Update sort arrows
+  document.querySelectorAll('th').forEach(th => {
+    th.classList.toggle('sorted', th.dataset.col === sortCol);
+    const arrow = th.querySelector('.sort-arrow');
+    if (th.dataset.col === sortCol) {
+      arrow.textContent = sortAsc ? '↑' : '↓';
+    } else {
+      arrow.textContent = '↕';
+    }
+  });
+}
+
+// ── SSE ──────────────────────────────────────────────────────────────────────
+function connectSSE() {
+  const dot   = document.getElementById('sse-dot');
+  const label = document.getElementById('sse-label');
+
+  dot.className   = 'connecting';
+  label.textContent = 'Connecting…';
+
+  const es = new EventSource(`${API_BASE}/api/inventory/stream`);
+
+  es.addEventListener('connected', () => {
+    dot.className     = 'connected';
+    label.textContent = 'Live';
+  });
+
+  es.addEventListener('sku_update', e => {
+    const updated = JSON.parse(e.data);
+    const idx = allItems.findIndex(i => i.sku_id === updated.sku_id);
+    if (idx !== -1) allItems[idx] = updated;
+    else allItems.push(updated);
+    renderTable(updated.sku_id);
+  });
+
+  es.addEventListener('ping', () => { /* keep-alive, ignore */ });
+
+  es.onerror = () => {
+    dot.className     = 'error';
+    label.textContent = 'Reconnecting…';
+    es.close();
+    setTimeout(connectSSE, 3000);
+  };
+}
+
+// ── Bootstrap ────────────────────────────────────────────────────────────────
+async function init() {
+  // Date in top bar
+  document.getElementById('current-date').textContent =
+    new Date().toLocaleDateString('en-GB', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+
+  // Load inventory
+  try {
+    const res  = await fetch(`${API_BASE}/api/inventory`);
+    allItems   = await res.json();
+    document.getElementById('loading').style.display = 'none';
+    renderTable();
+  } catch (err) {
+    document.getElementById('loading').textContent = 'Failed to load inventory. Is the server running?';
+    console.error(err);
+    return;
+  }
+
+  // Connect SSE
+  connectSSE();
+
+  // Filter controls
+  ['filter-store', 'filter-category', 'filter-status'].forEach(id =>
+    document.getElementById(id).addEventListener('change', () => renderTable())
+  );
+  document.getElementById('filter-search').addEventListener('input', () => renderTable());
+
+  // Sort on header click
+  document.querySelectorAll('th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (sortCol === col) sortAsc = !sortAsc;
+      else { sortCol = col; sortAsc = true; }
+      renderTable();
+    });
+  });
+}
+
+init();
+</script>
+</body>
+</html>

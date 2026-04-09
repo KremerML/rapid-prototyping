@@ -1,0 +1,255 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:500;padding:2px 7px;border-radius:20px;white-space:nowrap}
+.b-red{background:#FCEBEB;color:#A32D2D}
+.b-amber{background:#FAEEDA;color:#854F0B}
+.b-blue{background:#E6F1FB;color:#185FA5}
+.b-green{background:#EAF3DE;color:#3B6D11}
+.b-gray{background:#F1EFE8;color:#5F5E5A}
+.b-teal{background:#E1F5EE;color:#0F6E56}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem}
+.mc{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.85rem;flex:1;min-width:0}
+.ml{font-size:11px;color:var(--color-text-secondary);margin-bottom:3px}
+.mv{font-size:21px;font-weight:500;color:var(--color-text-primary)}
+.ms{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.item-row{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:11px 14px;margin-bottom:7px;transition:background 0.2s,border 0.2s}
+.item-row.accepted{background:#EAF3DE;border-color:#97C459}
+.item-row.accepted .item-name{color:#27500A}
+.risk-bar{height:3px;border-radius:2px;background:var(--color-border-tertiary);margin-top:4px;overflow:hidden}
+.risk-fill{height:100%;border-radius:2px}
+.region-chip{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:500;padding:2px 7px;border-radius:20px}
+.chip-cold{background:#E6F1FB;color:#0C447C}
+.chip-warm{background:#FAEEDA;color:#633806}
+.accept-btn{background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:5px 12px;font-size:12px;font-weight:500;color:var(--color-text-primary);cursor:pointer;white-space:nowrap;transition:background 0.15s}
+.accept-btn:hover{background:var(--color-background-secondary)}
+.accept-btn.done{background:#EAF3DE;border-color:#97C459;color:#27500A;cursor:default}
+.accept-btn:disabled{opacity:.45;cursor:not-allowed}
+.saved-counter{font-size:28px;font-weight:500;color:#3B6D11;transition:all 0.3s}
+.divider{height:0.5px;background:var(--color-border-tertiary);margin:.75rem 0}
+.col-label{font-size:11px;font-weight:500;color:var(--color-text-secondary);letter-spacing:0.03em}
+.tick-circle{width:18px;height:18px;border-radius:50%;background:#EAF3DE;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+@keyframes count-up{from{transform:scale(1.12)}to{transform:scale(1)}}
+.pop{animation:count-up 0.25s ease}
+</style>
+
+<h2 class="sr-only">Smart-Clear Recommendation Engine: A prioritised dashboard showing 10 at-risk inventory items with region-specific staged markdown recommendations replacing a blanket 30% cut, tracking projected margin saved as recommendations are accepted.</h2>
+
+<div style="padding:1rem 0">
+
+<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:1.25rem">
+  <div>
+    <div style="font-size:11px;font-weight:500;letter-spacing:.06em;color:var(--color-text-secondary);margin-bottom:3px">SMART-CLEAR · MARKDOWN OPTIMISATION</div>
+    <div style="font-size:20px;font-weight:500;color:var(--color-text-primary)">At-risk inventory — week of 9 Apr</div>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+    <span class="badge b-red">10 items need action</span>
+    <span class="badge b-gray">~400 stores · 3 regions</span>
+  </div>
+</div>
+
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.25rem">
+  <div class="mc">
+    <div class="ml">Total units at risk</div>
+    <div class="mv">15,600</div>
+    <div class="ms">across 10 SKUs</div>
+  </div>
+  <div class="mc">
+    <div class="ml">Blanket 30% cost</div>
+    <div class="mv" style="color:#A32D2D">-£416K</div>
+    <div class="ms">margin lost, old approach</div>
+  </div>
+  <div class="mc">
+    <div class="ml">Smart-Clear approach</div>
+    <div class="mv" style="color:#854F0B">-£298K</div>
+    <div class="ms">staged by region</div>
+  </div>
+  <div class="mc" id="saved-card">
+    <div class="ml">Projected margin saved</div>
+    <div class="saved-counter" id="saved-display">£0</div>
+    <div class="ms"><span id="accepted-count">0</span> of 10 accepted</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:1rem;padding:.85rem 1.25rem">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Why staged markdowns?</div>
+    <span class="badge b-teal">Smart-Clear logic</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">
+    <div style="padding:9px 12px;background:#E6F1FB;border-radius:var(--border-radius-md)">
+      <div style="font-size:11px;font-weight:500;color:#0C447C;margin-bottom:3px">Cold regions (North, Midwest)</div>
+      <div style="font-size:13px;color:#185FA5">Still selling at natural pace — a 15% nudge clears stock without destroying margin</div>
+    </div>
+    <div style="padding:9px 12px;background:#FAEEDA;border-radius:var(--border-radius-md)">
+      <div style="font-size:11px;font-weight:500;color:#633806;margin-bottom:3px">Warm regions (South, Southwest)</div>
+      <div style="font-size:13px;color:#854F0B">Season is over — 40% drives fast clearance before items need liquidation at 60%+</div>
+    </div>
+    <div style="padding:9px 12px;background:#FCEBEB;border-radius:var(--border-radius-md)">
+      <div style="font-size:11px;font-weight:500;color:#A32D2D;margin-bottom:3px">Blanket 30% (current approach)</div>
+      <div style="font-size:13px;color:#A32D2D">Over-discounts cold stock and under-clears warm stock — worst of both worlds</div>
+    </div>
+  </div>
+</div>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+  <div style="display:flex;gap:12px">
+    <div class="col-label" style="min-width:160px">Item</div>
+    <div class="col-label" style="min-width:48px">Units</div>
+    <div class="col-label" style="min-width:64px">Cover left</div>
+    <div class="col-label" style="min-width:110px">Smart-Clear rec</div>
+    <div class="col-label" style="min-width:80px">Margin saved</div>
+  </div>
+  <button id="accept-all-btn" onclick="acceptAll()" style="background:var(--color-text-primary);color:var(--color-background-primary);border:none;border-radius:var(--border-radius-md);padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer">Accept all 10</button>
+</div>
+
+<div id="items-list"></div>
+
+<div style="margin-top:1.25rem" class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px">
+    <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Margin impact — Smart-Clear vs blanket 30%</div>
+    <div style="display:flex;gap:14px;font-size:12px;color:var(--color-text-secondary)">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#E24B4A;display:inline-block"></span>Blanket 30%</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#639922;display:inline-block"></span>Smart-Clear</span>
+    </div>
+  </div>
+  <div style="position:relative;width:100%;height:240px">
+    <canvas id="marginChart" role="img" aria-label="Grouped bar chart comparing markdown cost per item under blanket 30% versus Smart-Clear staged approach, showing Smart-Clear consistently lower.">Margin impact comparison across 10 at-risk items showing Smart-Clear approach saves between £2,900 and £11,200 per SKU versus blanket 30% markdown.</canvas>
+  </div>
+  <div style="margin-top:12px;padding-top:10px;border-top:0.5px solid var(--color-border-tertiary);display:flex;gap:8px;flex-wrap:wrap">
+    <button onclick="sendPrompt('How would Smart-Clear handle end-of-season clearance for footwear and accessories differently from outerwear?')" style="background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:6px 14px;font-size:12px;cursor:pointer">Ask about other categories ↗</button>
+    <button onclick="sendPrompt('Show me how Smart-Clear calculates the regional markdown recommendation for Style 7741 Sherpa-Lined Parka')" style="background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:6px 14px;font-size:12px;cursor:pointer">How is the rec calculated? ↗</button>
+  </div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const items = [
+  {id:1,name:'Thermal base layer set',sku:'#6643',units:4200,weeks:3.1,cold:10,warm:40,risk:95,saved:11200},
+  {id:2,name:'Ribbed turtleneck',sku:'#3367',units:3450,weeks:3.9,cold:15,warm:35,risk:90,saved:7800},
+  {id:3,name:'Padded gilet',sku:'#9918',units:2100,weeks:4.8,cold:20,warm:35,risk:82,saved:4200},
+  {id:4,name:'Sherpa-lined parka',sku:'#7741',units:1240,weeks:6.2,cold:15,warm:40,risk:74,saved:8400},
+  {id:5,name:'Quilted longline jacket',sku:'#2241',units:1120,weeks:5.5,cold:15,warm:40,risk:78,saved:5600},
+  {id:6,name:'Fleece-lined trousers',sku:'#8821',units:780,weeks:9.4,cold:20,warm:40,risk:60,saved:3900},
+  {id:7,name:'Boucle wrap coat',sku:'#5528',units:560,weeks:11.2,cold:15,warm:35,risk:52,saved:4100},
+  {id:8,name:'Wool blend overcoat',sku:'#4432',units:890,weeks:8.1,cold:15,warm:40,risk:66,saved:6100},
+  {id:9,name:'Cable knit midi dress',sku:'#8842',units:340,weeks:7.8,cold:20,warm:40,risk:55,saved:2900},
+  {id:10,name:'Sherpa-trim boots',sku:'#1195',units:920,weeks:6.9,cold:20,warm:40,risk:70,saved:3800},
+];
+
+const riskColors = v => v>=85?'#E24B4A':v>=70?'#EF9F27':'#B4B2A9';
+const riskLabel = v => v>=85?'Critical':v>=70?'High':'Moderate';
+const riskBadge = v => v>=85?'b-red':v>=70?'b-amber':'b-gray';
+
+let accepted = new Set();
+let totalSaved = 0;
+
+function renderItems(){
+  const list = document.getElementById('items-list');
+  list.innerHTML = items.map(it => {
+    const isAcc = accepted.has(it.id);
+    return `<div class="item-row${isAcc?' accepted':''}" id="row-${it.id}">
+      <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <div style="min-width:150px;flex:1">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            ${isAcc?`<div class="tick-circle"><svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,5 3.8,7.5 8.5,2" stroke="#3B6D11" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`:''}
+            <span class="item-name" style="font-size:13px;font-weight:500;color:${isAcc?'#27500A':'var(--color-text-primary)'};">${it.name}</span>
+            <span class="badge b-gray">${it.sku}</span>
+            <span class="badge ${riskBadge(it.risk)}">${riskLabel(it.risk)}</span>
+          </div>
+          <div class="risk-bar"><div class="risk-fill" style="width:${it.risk}%;background:${riskColors(it.risk)}"></div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0">
+          <div style="text-align:center;min-width:44px">
+            <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">${it.units.toLocaleString()}</div>
+            <div style="font-size:11px;color:var(--color-text-secondary)">units</div>
+          </div>
+          <div style="text-align:center;min-width:52px">
+            <div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">${it.weeks} wks</div>
+            <div style="font-size:11px;color:var(--color-text-secondary)">cover left</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;min-width:110px">
+            <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:1px">Smart-Clear rec</div>
+            <div style="display:flex;gap:5px;align-items:center">
+              <span class="region-chip chip-cold">Cold ${it.cold}%</span>
+              <span style="font-size:11px;color:var(--color-text-secondary)">vs</span>
+              <span class="region-chip chip-warm">Warm ${it.warm}%</span>
+            </div>
+            <div style="font-size:11px;color:var(--color-text-secondary)">Blanket would be: <span style="color:#A32D2D;font-weight:500">30% all regions</span></div>
+          </div>
+          <div style="text-align:right;min-width:72px">
+            <div style="font-size:14px;font-weight:500;color:#3B6D11">+£${it.saved.toLocaleString()}</div>
+            <div style="font-size:11px;color:var(--color-text-secondary)">margin saved</div>
+          </div>
+          <button class="accept-btn${isAcc?' done':''}" onclick="acceptItem(${it.id})" ${isAcc?'disabled':''}>
+            ${isAcc?'Accepted':'Accept rec'}
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function animateSaved(target){
+  const el = document.getElementById('saved-display');
+  const start = totalSaved - target;
+  let current = start;
+  const step = Math.ceil(target / 20);
+  const iv = setInterval(()=>{
+    current = Math.min(current + step, totalSaved);
+    el.textContent = '£' + current.toLocaleString();
+    if(current >= totalSaved){clearInterval(iv); el.classList.add('pop'); setTimeout(()=>el.classList.remove('pop'),300);}
+  }, 30);
+}
+
+function acceptItem(id){
+  if(accepted.has(id)) return;
+  accepted.add(id);
+  const it = items.find(i=>i.id===id);
+  totalSaved += it.saved;
+  document.getElementById('accepted-count').textContent = accepted.size;
+  animateSaved(it.saved);
+  renderItems();
+  if(accepted.size === items.length){
+    document.getElementById('accept-all-btn').textContent = 'All accepted';
+    document.getElementById('accept-all-btn').disabled = true;
+    document.getElementById('accept-all-btn').style.opacity = '.45';
+  }
+}
+
+function acceptAll(){
+  const remaining = items.filter(i=>!accepted.has(i.id));
+  let delay = 0;
+  remaining.forEach(it=>{
+    setTimeout(()=>acceptItem(it.id), delay);
+    delay += 110;
+  });
+}
+
+renderItems();
+
+const labels = items.map(i=>i.name.split(' ').slice(0,2).join(' '));
+const blanketData = items.map(i=>Math.round(i.saved + i.saved * (0.5 + Math.random()*0.4)));
+const smartData = items.map(i=>Math.round(blanketData[items.indexOf(i)] - i.saved));
+
+new Chart(document.getElementById('marginChart'),{
+  type:'bar',
+  data:{
+    labels,
+    datasets:[
+      {label:'Blanket 30%',data:blanketData,backgroundColor:'#F09595',borderWidth:0},
+      {label:'Smart-Clear',data:smartData,backgroundColor:'#97C459',borderWidth:0}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: £${ctx.parsed.y.toLocaleString()} markdown cost`}}},
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:10},color:'#888780',autoSkip:false,maxRotation:35}},
+      y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{font:{size:11},color:'#888780',callback:v=>'£'+Math.round(v/1000)+'K'},title:{display:true,text:'Markdown cost (£)',font:{size:11},color:'#888780'}}
+    }
+  }
+});
+</script>
